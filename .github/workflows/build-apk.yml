@@ -1,4 +1,4 @@
-name: Android Qt Cpp Build
+name: Generate Android APK
 
 on:
   push:
@@ -7,34 +7,40 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Qt and Android SDK
-      uses: jurplel/install-qt-action@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        version: '6.5.3' # স্থিতিশীল Qt ভার্সন
-        target: 'android'
-        arch: 'android_arm64_v8a'
+        python-version: '3.10'
 
-    - name: Setup Android NDK
-      uses: android-actions/setup-android@v3
-
-    - name: Build APK with CMake
+    - name: Install System Dependencies
       run: |
-        mkdir build && cd build
-        cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=arm64-v8a \
-              -DANDROID_PLATFORM=android-26 \
-              ..
-        make
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreproducibility-dev libjpeg-dev
+        pip3 install --user --upgrade buildozer cython==0.29.33 virtualenv
 
-    - name: Upload APK Artifact
+    - name: Initialize and Configure Buildozer
+      run: |
+        buildozer init
+        # অ্যাপের নাম এবং সেটিংস পরিবর্তন করা হচ্ছে
+        sed -i 's/^title =.*/title = CalcPro Plus/' buildozer.spec
+        sed -i 's/^package.name =.*/package.name = calcproplus/' buildozer.spec
+        sed -i 's/^source.include_exts =.*/source.include_exts = py,png,jpg,kv,atlas,cpp,h,hpp/' buildozer.spec
+        sed -i 's/#requirements =.*/requirements = python3,kivy/' buildozer.spec
+        sed -i 's/#android.archs =.*/android.archs = arm64-v8a/' buildozer.spec
+        sed -i 's/#android.accept_sdk_license =.*/android.accept_sdk_license = False/' buildozer.spec
+
+    - name: Build Android APK
+      run: |
+        yes | buildozer -v android debug
+
+    - name: Upload Finished APK
       uses: actions/upload-artifact@v4
       with:
-        name: Calculator-Android-APK
-        path: build/**/*.apk
-        
+        name: CalcPro-Android-APK
+        path: bin/*.apk
