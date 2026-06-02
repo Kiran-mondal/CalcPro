@@ -16,25 +16,27 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' # আরও স্টেবল পাইথন ভার্সন সেট করা হলো
+        python-version: '3.10' # এখানে স্থিতিশীল পাইথন নিশ্চিত করা হলো
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libjpeg-dev
-        # পাইথন ৩.৯ এর সাথে সামঞ্জস্যপূর্ণ Cython ভার্সন
+        # সঠিক সাইথোন এবং বিল্ডোজার ভার্সন সেটআপ
         pip3 install --user --upgrade "buildozer>=1.5.0" "cython>=0.29.33,<3.0" virtualenv
 
     - name: Initialize and Configure Buildozer
       run: |
         buildozer init
+        # অ্যাপের নাম এবং বেসিক কনফিগারেশন
         sed -i 's/^title =.*/title = CalcPro Plus/' buildozer.spec
         sed -i 's/^package.name =.*/package.name = calcproplus/' buildozer.spec
         sed -i 's/^source.include_exts =.*/source.include_exts = py,png,jpg,kv,atlas,cpp,h,hpp/' buildozer.spec
         
-        # এখানে নির্দিষ্ট করে দেওয়া হয়েছে কিভি এবং পাইথন ভার্সন
-        sed -i 's/#requirements =.*/requirements = python3==3.9.9,kivy==2.2.1/' buildozer.spec
+        # এখানে নির্দিষ্ট করে দেওয়া হয়েছে লাইব্রেরিগুলো যা কোয়ান্টাম ফিচারে লাগবে
+        sed -i 's/#requirements =.*/requirements = python3==3.10.11,kivy==2.3.0,numpy,sympy/' buildozer.spec
         
+        # অ্যান্ড্রয়েড আর্কিটেকচার সেটিংস
         sed -i 's/#android.archs =.*/android.archs = arm64-v8a/' buildozer.spec
         sed -i 's/#android.accept_sdk_license =.*/android.accept_sdk_license = False/' buildozer.spec
         sed -i 's/#android.minapi =.*/android.minapi = 21/' buildozer.spec
@@ -42,7 +44,7 @@ jobs:
 
     - name: Build Android APK
       run: |
-        # এখানে ডেবাক লগের সাইজ কিছুটা নিয়ন্ত্রণ করা হয়েছে যাতেtruncated না হয়
+        # অতিরিক্ত ডেবাক ইনফো অফ করে ফাইনাল বিল্ড রান করা
         yes | buildozer android debug
 
     - name: Upload Finished APK
@@ -50,3 +52,4 @@ jobs:
       with:
         name: CalcPro-Android-APK
         path: bin/*.apk
+        
